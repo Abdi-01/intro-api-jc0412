@@ -1,0 +1,15 @@
+{
+  "user": [
+    {
+      "id": 1,
+      "username": "edo11",
+      "email": "edo11@mail.com"
+    },
+    {
+      "id": 2,
+      "username": "edo22",
+      "email": "edo22@mail.com"
+    }
+  ],
+  "product": []
+}
