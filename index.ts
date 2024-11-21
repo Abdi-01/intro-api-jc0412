@@ -1,52 +1,74 @@
-import * as http from "http";
+import express, { Application, Request, Response } from "express";
 import fs from "fs";
-// Define API PORT
-const PORT: number = 2440;
+const PORT: number = 2550;
 
-// Define API server config
-const server = http.createServer(
-  (request: http.IncomingMessage, response: http.ServerResponse) => {
-    console.log("READ REQUEST :", request.method, request.url);
-    if (request.method === "GET" && request.url === "/") {
-      response.write("Welcome to Intro API");
-      response.end();
-    } else if (request.method === "GET" && request.url?.includes("/user")) {
-      // Membaca isi file db.json
-      const dataUser = JSON.parse(fs.readFileSync("./db.json").toString());
-      console.log(dataUser.user);
-      if (request.url.includes("?")) {
-        const queryParams = request.url.split("?")[1].split("&");
-        console.log(queryParams); // ["id=1", "username='edo11'"]
-        const filter = dataUser.user.filter((val: any, idx: number) => {
-          let check = true;
-          for (let index = 0; index < queryParams.length; index++) {
-            const [field, queryValue] = queryParams[index].split("="); // ["id", "1"]
-            if (val[field] != queryValue) {
-              // val["id"] != 1
-              check = false;
-              break;
-            }
-          }
-          return check;
-        });
-        response.write(JSON.stringify(filter));
-        response.end();
-      } else {
-        response.write(JSON.stringify(dataUser.user));
-        response.end();
-      }
-    } else if (request.method === "GET" && request.url === "/product") {
-      response.write("<h1>Data Product</h1>");
-      response.end();
-    } else {
-      response.writeHead(404);
-      response.write("<h1>Url Tidak Ada</h1>");
-      response.end();
-    }
-  }
-);
+const server: Application = express();
+server.use(express.json()); //  middleware untuk membaca request.body
 
-// Run server
+// Config routing
+server.get("/", (request: Request, response: Response) => {
+  response.status(200).send("<h1>Express API</h1>");
+});
+
+server.get("/user", (request: Request, response: Response) => {
+  const data = JSON.parse(fs.readFileSync("./db.json").toString());
+  console.log(request.query);
+  //
+  response.status(200).send(data.user);
+});
+
+server.get("/user/:id", (request: Request, response: Response) => {
+  const data = JSON.parse(fs.readFileSync("./db.json").toString());
+  console.log(request.params);
+  response.status(200).send(data.user);
+});
+
+server.post("/user", (req: Request, res: Response) => {
+  console.log(req.body);
+  // 1. Pastikan mengakses seluruh data dari db.json
+  const data = JSON.parse(fs.readFileSync("./db.json").toString());
+  // 2. Generate id baru untuk data yang baru
+  const newId = data.user[data.user.length - 1].id + 1;
+  // 3. Masukkan data baru beserta id baru kedalam data user
+  data.user.push({ id: newId, ...req.body });
+  // 4. Tulis ulang isi file db.json
+  fs.writeFileSync("./db.json", JSON.stringify(data, null, 2));
+  res.status(201).send({
+    message: "Add data success",
+    isSuccess: true,
+  });
+});
+
+server.delete("/user/:id", (req: Request, res: Response) => {
+  const data = JSON.parse(fs.readFileSync("./db.json").toString());
+  const dataIdx: number = data.user.findIndex(
+    (val: any) => val.id == req.params.id
+  );
+
+  data.user.splice(dataIdx, 1); // menghapus data berdasarkan idx yang ditemukan
+  fs.writeFileSync("./db.json", JSON.stringify(data, null, 2));
+
+  res.status(200).send({
+    message: `Deleted data user ${req.params.id} success`,
+    success: true,
+  });
+});
+
+server.patch("/user/:id", (req: Request, res: Response) => {
+  const data = JSON.parse(fs.readFileSync("./db.json").toString());
+  const dataIdx: number = data.user.findIndex(
+    (val: any) => val.id == req.params.id
+  );
+
+  data.user[dataIdx] = { ...data.user[dataIdx], ...req.body };
+  fs.writeFileSync("./db.json", JSON.stringify(data, null, 2));
+
+  res.status(200).send({
+    message: `Updated data user ${req.params.id} success`,
+    success: true,
+  });
+});
+
 server.listen(PORT, () => {
-  console.log("API is running at ", PORT);
+  console.log("API EXPRESS is Running", PORT);
 });
